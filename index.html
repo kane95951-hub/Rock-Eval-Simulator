@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PetroRock-Eval Simulator</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f9e8f">
+<style>
+  :root {
+    /* Dégradé de fond et couleur d'accent (identité de marque, inchangée
+       entre les deux thèmes). */
+    --grad-1: #121212;
+    --grad-2: #191919;
+    --grad-3: #202020;
+    --accent: #2f9e8f;
+    --accent-rgb: 47, 158, 143;
+    --accent-text: #0b2e33;
+
+    /* Couleur de texte principale, sous forme de canaux R,G,B pour
+       pouvoir moduler l'opacité via rgba(var(--texte-rgb), X). */
+    --texte-rgb: 238, 246, 244;
+    --texte: rgb(var(--texte-rgb));
+
+    /* Teinte de survol des panneaux ("carte élevée") et des champs
+       ("creux") — inversées entre thème sombre et thème clair. */
+    --surface-rgb: 255, 255, 255;
+    --champ-rgb: 11, 46, 51;
+
+    /* Couleurs de statut, communes aux deux thèmes. */
+    --avertissement-rgb: 224, 178, 60;
+    --erreur-rgb: 224, 88, 92;
+  }
+
+  :root[data-theme="light"] {
+    --grad-1: #eaf6f2;
+    --grad-2: #dcefe9;
+    --grad-3: #bfe3d8;
+    --accent: #1f7a6d;
+    --accent-rgb: 31, 122, 109;
+    --accent-text: #ffffff;
+
+    --texte-rgb: 15, 46, 43;
+
+    --surface-rgb: 11, 46, 51;
+    --champ-rgb: 255, 255, 255;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+  }
+
+  body {
+    font-family: "Georgia", "Iowan Old Style", serif;
+    color: var(--texte);
+    background: linear-gradient(160deg, var(--grad-1) 0%, var(--grad-2) 55%, var(--grad-3) 100%);
+    background-attachment: fixed;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 6vh 6vw 8vh;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+
+  main {
+    max-width: 640px;
+    width: 100%;
+  }
+
+  .theme-toggle-conteneur {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+  }
+
+  .theme-toggle-btn {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.82rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid rgba(var(--texte-rgb), 0.25);
+    background: rgba(var(--texte-rgb), 0.08);
+    color: var(--texte);
+    cursor: pointer;
+  }
+
+  .theme-toggle-btn:hover {
+    background: rgba(var(--texte-rgb), 0.14);
+  }
+
+  .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    color: rgba(var(--texte-rgb), 0.72);
+    margin: 0 0 0.75rem 0;
+  }
+
+  h1 {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    line-height: 1.1;
+    margin: 0 0 1.4rem 0;
+    font-weight: 500;
+  }
+
+  p.lede {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 1.08rem;
+    line-height: 1.65;
+    max-width: 46ch;
+    color: rgba(var(--texte-rgb), 0.92);
+    margin: 0 0 2.4rem 0;
+  }
+
+  .avertissement {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: rgba(var(--texte-rgb), 0.85);
+    background: rgba(var(--avertissement-rgb), 0.14);
+    border-left: 3px solid rgba(var(--avertissement-rgb), 0.7);
+    padding: 0.65rem 0.95rem;
+    border-radius: 6px;
+    margin: 0 0 2rem 0;
+  }
+
+  .panel {
+    background: rgba(var(--surface-rgb), 0.06);
+    border: 1px solid rgba(var(--texte-rgb), 0.18);
+    border-radius: 10px;
+    padding: 1.6rem 1.75rem 1.8rem;
+    margin: 0 0 2.4rem 0;
+  }
+
+  .panel h2 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: rgba(var(--texte-rgb), 0.75);
+    margin: 0 0 1.3rem 0;
+  }
+
+  .field {
+    margin-bottom: 1.1rem;
+  }
+
+  .field label {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.92rem;
+    color: rgba(var(--texte-rgb), 0.88);
+    margin-bottom: 0.4rem;
+  }
+
+  .field .hint {
+    font-weight: 400;
+    color: rgba(var(--texte-rgb), 0.5);
+    font-size: 0.82rem;
+  }
+
+  .field input[type="number"],
+  .field select {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid rgba(var(--texte-rgb), 0.22);
+    background: rgba(var(--champ-rgb), 0.4);
+    color: var(--texte);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 1rem;
+  }
+
+  .field select option {
+    background: var(--grad-1);
+    color: var(--texte);
+  }
+
+  .field input[type="number"]:focus,
+  .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.28);
+  }
+
+  .field.invalide input,
+  .field.invalide select {
+    border-color: #e2585c;
+  }
+
+  .erreurs {
+    display: none;
+    margin-top: 0.9rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 6px;
+    background: rgba(var(--erreur-rgb), 0.16);
+    border: 1px solid rgba(var(--erreur-rgb), 0.55);
+    color: var(--texte);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .a-propos-panel summary {
+    cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: rgba(var(--texte-rgb), 0.75);
+  }
+
+  .a-propos-panel summary::marker {
+    color: var(--accent);
+  }
+
+  .a-propos-panel p,
+  .a-propos-panel li {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: rgba(var(--texte-rgb), 0.88);
+  }
+
+  .a-propos-panel p {
+    margin: 0.9rem 0 0 0;
+  }
+
+  .a-propos-panel ul {
+    margin: 0.6rem 0 0 0;
+    padding-left: 1.2rem;
+  }
+
+  .a-propos-panel li + li {
+    margin-top: 0.3rem;
+  }
+
+  .a-propos-panel code {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 0.85em;
+    background: rgba(var(--texte-rgb), 0.1);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+  }
+
+  .generer-btn {
+    display: block;
+    width: 100%;
+    margin-top: 0.4rem;
+    padding: 0.7rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.98rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+  }
+
+  .generer-btn:hover {
+    filter: brightness(1.1);
+  }
+
+  .secondaire-btn {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.65rem 1.5rem;
+    border: 1px solid rgba(var(--accent-rgb), 0.55);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--texte);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .secondaire-btn:hover {
+    background: rgba(var(--accent-rgb), 0.12);
+  }
+
+  .graphique-conteneur {
+    position: relative;
+    width: 100%;
+    height: 280px;
+  }
+
+  @media (max-width: 480px) {
+    .graphique-conteneur { height: 220px; }
+  }
+
+  footer {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.85rem;
+    color: rgba(var(--texte-rgb), 0.55);
+    border-top: 1px solid rgba(var(--texte-rgb), 0.2);
+    padding-top: 1rem;
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 8vh 7vw 8vh; }
+  }
+</style>
+</head>
+<body>
+  <main>
+    <div class="theme-toggle-conteneur">
+      <button type="button" class="theme-toggle-btn" id="theme-toggle">☀️ Clair</button>
+    </div>
+
+    <p class="eyebrow">Simulateur pédagogique de pyrolyse Rock-Eval</p>
+    <h1>PetroRock-Eval Simulator</h1>
+    <p class="lede">
+      Un outil web gratuit pour visualiser, de façon simplifiée, comment une
+      roche mère génère ses signaux S1, S2, S3 et Tmax pendant une analyse
+      Rock-Eval. Pensé pour les étudiants en géologie pétrolière qui veulent
+      relier intuitivement la théorie de la pyrolyse aux courbes qu'elle
+      produit, sans matériel de laboratoire.
+    </p>
+
+    <div class="avertissement">
+      ⚠️ Simulation pédagogique simplifiée — ne remplace pas une mesure Rock-Eval réelle.
+    </div>
+
+    <form class="panel" id="parametres-form">
+      <h2>Paramètres de la roche mère</h2>
+
+      <div class="field">
+        <label for="type-kerogene">Type de kérogène <span class="hint">optionnel — préremplit HI et IO</span></label>
+        <select id="type-kerogene">
+          <option value="">— Personnalisé —</option>
+          <option value="I">Kérogène I (lacustre, très huileux)</option>
+          <option value="II">Kérogène II (marin, huileux)</option>
+          <option value="III">Kérogène III (terrigène, gazeux)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="toc">Carbone organique total <span class="hint">TOC, en %</span></label>
+        <input type="number" id="toc" name="toc" min="0.1" max="30" step="0.1" value="5" required>
+      </div>
+
+      <div class="field">
+        <label for="hi">Indice d'hydrogène <span class="hint">HI, en mg HC/g TOC</span></label>
+        <input type="number" id="hi" name="hi" min="0" max="900" step="1" value="400" required>
+      </div>
+
+      <div class="field">
+        <label for="io">Indice d'oxygène <span class="hint">IO, en mg CO2/g TOC</span></label>
+        <input type="number" id="io" name="io" min="0" max="150" step="1" value="50" required>
+      </div>
+
+      <div class="field">
+        <label for="tmax">Tmax cible <span class="hint">en °C</span></label>
+        <input type="number" id="tmax" name="tmax" min="380" max="550" step="1" value="435" required>
+      </div>
+
+      <button type="button" class="generer-btn" id="generer-btn">Générer les courbes</button>
+
+      <div class="erreurs" id="zone-erreurs" role="alert"></div>
+    </form>
+
+    <div class="panel graphique-panel">
+      <h2>Courbes S1 / S2 / S3</h2>
+      <div class="graphique-conteneur">
+        <canvas id="graphique-rockeval"></canvas>
+      </div>
+      <button type="button" class="secondaire-btn" id="exporter-btn">Exporter en CSV</button>
+      <button type="button" class="secondaire-btn" id="exporter-image-btn">Exporter le graphique en image (PNG)</button>
+    </div>
+
+    <div class="panel a-propos-panel">
+      <details>
+        <summary>À propos du modèle</summary>
+        <p>
+          Ce simulateur ne mesure rien : il <strong>construit</strong> des
+          courbes plausibles à partir des quatre valeurs saisies, selon des
+          règles volontairement simplifiées.
+        </p>
+        <ul>
+          <li><strong>S2</strong> se calcule directement à partir de HI et TOC, et forme un pic dont le sommet tombe sur Tmax.</li>
+          <li><strong>S3</strong> se calcule à partir de IO et TOC, en un pic plus large, toujours centré vers 400°C — sa position ne dépend pas de Tmax.</li>
+          <li><strong>S1</strong> n'a pas de champ dédié dans le formulaire : il est estimé comme une petite fraction de S2, ce qui reste une approximation.</li>
+        </ul>
+        <p>
+          Les positions et largeurs de ces trois pics sont des valeurs fixes,
+          choisies pour donner une allure réaliste — elles ne sont pas
+          calibrées sur des mesures de laboratoire. Le détail complet des
+          simplifications assumées est dans le <code>README.md</code> du
+          dépôt.
+        </p>
+      </details>
+    </div>
+
+    <footer>
+      Projet étudiant — EHES, Génie Pétrolier et Gaz, Dakar
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="script.js"></script>
+  <script>
+    // Références aux champs du formulaire et aux boutons
+    const champTOC = document.getElementById('toc');
+    const champHI = document.getElementById('hi');
+    const champIO = document.getElementById('io');
+    const champTmax = document.getElementById('tmax');
+    const champType = document.getElementById('type-kerogene');
+    const boutonGenerer = document.getElementById('generer-btn');
+    const boutonExporter = document.getElementById('exporter-btn');
+    const boutonExporterImage = document.getElementById('exporter-image-btn');
+    const boutonTheme = document.getElementById('theme-toggle');
+    const zoneErreurs = document.getElementById('zone-erreurs');
+
+    // --- Thème sombre / clair ---------------------------------------
+    // Chart.js ne lit pas les variables CSS de la page : ses propres
+    // couleurs (texte, grille, fond du canvas, ligne de Tmax) doivent
+    // être mises à jour "à la main" quand on change de thème.
+    const themeCouleurs = {
+      dark: {
+        texteChart: 'rgba(238, 246, 244, 0.85)',
+        grilleChart: 'rgba(238, 246, 244, 0.12)',
+        fondCanvas: '#1a1a1a',
+        ligneTrait: 'rgba(238, 246, 244, 0.55)',
+        ligneTexte: 'rgba(238, 246, 244, 0.9)'
+      },
+      light: {
+        texteChart: 'rgba(15, 46, 43, 0.85)',
+        grilleChart: 'rgba(15, 46, 43, 0.12)',
+        fondCanvas: '#eef6f4',
+        ligneTrait: 'rgba(15, 46, 43, 0.55)',
+        ligneTexte: 'rgba(15, 46, 43, 0.9)'
+      }
+    };
+
+    // Thème mémorisé d'une visite à l'autre (si le stockage local est
+    // disponible), sombre par défaut sinon.
+    let themeActuel = 'dark';
+    try {
+      themeActuel = localStorage.getItem('rockeval-theme') || 'dark';
+    } catch (erreur) {
+      // Stockage indisponible (navigation privée, etc.) : on reste en sombre.
+    }
+    document.documentElement.setAttribute('data-theme', themeActuel);
+    boutonTheme.textContent = themeActuel === 'light' ? '☀️ Clair' : '🌙 Sombre';
+
+    // Couleurs utilisées par les plugins Chart.js ci-dessous ; mises à
+    // jour par appliquerTheme() à chaque bascule.
+    let fondCanvasCouleur = themeCouleurs[themeActuel].fondCanvas;
+    let ligneTmaxCouleurTrait = themeCouleurs[themeActuel].ligneTrait;
+    let ligneTmaxCouleurTexte = themeCouleurs[themeActuel].ligneTexte;
+    Chart.defaults.color = themeCouleurs[themeActuel].texteChart;
+    Chart.defaults.borderColor = themeCouleurs[themeActuel].grilleChart;
+    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
+    // Vérifie qu'un champ contient un nombre dans les bornes autorisées
+    // (min/max définis directement sur l'input HTML). Retourne un
+    // message d'erreur en français, ou null si tout est correct.
+    function validerChamp(champ, nomAffiche, unite) {
+      const valeur = parseFloat(champ.value);
+      const min = parseFloat(champ.min);
+      const max = parseFloat(champ.max);
+
+      if (isNaN(valeur)) {
+        return nomAffiche + ' doit être un nombre.';
+      }
+      if (valeur < min || valeur > max) {
+        // toLocaleString('fr-FR') affiche une virgule décimale (0,1) plutôt
+        // qu'un point (0.1), plus correct en français.
+        const minAffiche = min.toLocaleString('fr-FR');
+        const maxAffiche = max.toLocaleString('fr-FR');
+        return nomAffiche + ' doit être compris entre ' + minAffiche + ' et ' + maxAffiche + ' ' + unite + '.';
+      }
+      return null;
+    }
+
+    // Valide les quatre champs, met en évidence ceux qui posent problème
+    // (bordure rouge) et affiche les messages en français. Renvoie true
+    // si le formulaire est entièrement valide.
+    function validerFormulaire() {
+      const messages = [];
+
+      [
+        { champ: champTOC, nom: 'Le TOC', unite: '%' },
+        { champ: champHI, nom: 'HI', unite: 'mg HC/g TOC' },
+        { champ: champIO, nom: 'IO', unite: 'mg CO2/g TOC' },
+        { champ: champTmax, nom: 'Tmax', unite: '°C' }
+      ].forEach(function (item) {
+        const message = validerChamp(item.champ, item.nom, item.unite);
+        item.champ.closest('.field').classList.toggle('invalide', Boolean(message));
+        if (message) messages.push(message);
+      });
+
+      zoneErreurs.textContent = messages.join(' ');
+      zoneErreurs.style.display = messages.length ? 'block' : 'none';
+
+      return messages.length === 0;
+    }
+
+    // Valeurs HI/IO typiques par type de kérogène (voir section "À propos
+    // du modèle") — utilisées pour préremplir le formulaire.
+    const valeursParType = {
+      I: { hi: 750, io: 20 },
+      II: { hi: 450, io: 30 },
+      III: { hi: 120, io: 70 }
+    };
+
+    // Au choix d'un type dans le menu déroulant, préremplit HI et IO, puis
+    // retrace immédiatement les courbes avec ces nouvelles valeurs.
+    champType.addEventListener('change', function () {
+      const valeurs = valeursParType[champType.value];
+      if (!valeurs) return; // "Personnalisé" : on ne touche à rien
+
+      champHI.value = valeurs.hi;
+      champIO.value = valeurs.io;
+
+      genererEtAfficher();
+    });
+
+    // Construit la liste des températures utilisée pour tracer les courbes
+    function creerTemperatures(min, max, pas) {
+      const temperatures = [];
+      for (let t = min; t <= max; t += pas) {
+        temperatures.push(t);
+      }
+      return temperatures;
+    }
+    const temperatures = creerTemperatures(300, 650, 2);
+
+    // Déduit S1, S2, S3 à partir des paramètres saisis (TOC, HI, IO).
+    // S2 et S3 se calculent directement depuis TOC/HI/IO ; S1 n'a pas de
+    // champ dédié dans le formulaire, on l'estime donc comme une petite
+    // fraction de S2 (simplification pédagogique assumée du modèle).
+    function calculerParametres() {
+      const toc = parseFloat(champTOC.value);
+      const hi = parseFloat(champHI.value);
+      const io = parseFloat(champIO.value);
+      const tmax = parseFloat(champTmax.value);
+
+      const s2 = hi * toc / 100;
+      const s3 = io * toc / 100;
+      const s1 = 0.075 * s2;
+
+      return { s1: s1, s2: s2, s3: s3, tmax: tmax };
+    }
+
+    // Mémorise le tmax actuellement affiché, pour que le plugin
+    // ci-dessous sache où tracer sa ligne verticale.
+    let tmaxActuel = parseFloat(champTmax.value);
+
+    // Le canvas est transparent par défaut : sans fond peint dessus, un
+    // export en image PNG donnerait un fichier avec un texte clair sur
+    // fond transparent (illisible une fois collé dans un rapport). Ce
+    // plugin peint un fond uni assorti au thème actuel, à l'écran comme
+    // à l'export.
+    const fondCanvasPlugin = {
+      id: 'fondCanvas',
+      beforeDraw(chart) {
+        const { ctx, width, height } = chart;
+        ctx.save();
+        ctx.fillStyle = fondCanvasCouleur;
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+      }
+    };
+
+    // Petit plugin Chart.js "maison" (pas de librairie externe) qui
+    // dessine une ligne verticale pointillée à la position de tmax,
+    // avec une étiquette au-dessus indiquant sa valeur.
+    const ligneTmaxPlugin = {
+      id: 'ligneTmax',
+      afterDatasetsDraw(chart) {
+        const { ctx, chartArea, scales } = chart;
+        const xPixel = scales.x.getPixelForValue(tmaxActuel);
+        if (xPixel < chartArea.left || xPixel > chartArea.right) return;
+
+        ctx.save();
+        ctx.strokeStyle = ligneTmaxCouleurTrait;
+        ctx.setLineDash([5, 4]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(xPixel, chartArea.top);
+        ctx.lineTo(xPixel, chartArea.bottom);
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+        ctx.fillStyle = ligneTmaxCouleurTexte;
+        ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.fillText('Tmax = ' + tmaxActuel + ' °C', xPixel, chartArea.top - 6);
+        ctx.restore();
+      }
+    };
+
+    // Création du graphique, avec trois courbes vides pour l'instant.
+    // Chaque point est de la forme {temperature, valeur} — on indique à
+    // Chart.js où lire x et y via "parsing", plutôt que de reformater
+    // les tableaux renvoyés par genererS1/S2/S3.
+    const ctx = document.getElementById('graphique-rockeval');
+    const graphique = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [
+          { label: 'S1 — HC libres', data: [], borderColor: '#4f8cff', backgroundColor: 'rgba(79, 140, 255, 0.12)', pointRadius: 0, tension: 0.3 },
+          { label: 'S2 — potentiel pétrolier', data: [], borderColor: '#2f9e8f', backgroundColor: 'rgba(47, 158, 143, 0.12)', pointRadius: 0, tension: 0.3 },
+          { label: 'S3 — CO2 libéré', data: [], borderColor: '#e08a3c', backgroundColor: 'rgba(224, 138, 60, 0.12)', pointRadius: 0, tension: 0.3 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        parsing: { xAxisKey: 'temperature', yAxisKey: 'valeur' },
+        layout: { padding: { top: 20 } },
+        plugins: {
+          legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }
+        },
+        scales: {
+          x: { type: 'linear', min: 300, max: 650, title: { display: true, text: 'Température (°C)' } },
+          y: { beginAtZero: true, title: { display: true, text: 'Valeur (mg/g roche)' } }
+        }
+      },
+      plugins: [fondCanvasPlugin, ligneTmaxPlugin]
+    });
+
+    // Recalcule les trois courbes à partir du formulaire et met à jour le graphique
+    function genererEtAfficher() {
+      if (!validerFormulaire()) return; // on ne retrace pas si des valeurs sont invalides
+
+      const parametres = calculerParametres();
+      tmaxActuel = parametres.tmax;
+
+      graphique.data.datasets[0].data = genererS1(temperatures, parametres.s1);
+      graphique.data.datasets[1].data = genererS2(temperatures, parametres.s2, parametres.tmax);
+      graphique.data.datasets[2].data = genererS3(temperatures, parametres.s3);
+
+      graphique.update();
+    }
+
+    // Premier tracé au chargement de la page, avec les valeurs par défaut
+    genererEtAfficher();
+
+    // Recalcule et retrace à chaque clic sur "Générer les courbes"
+    boutonGenerer.addEventListener('click', genererEtAfficher);
+
+    // Construit un fichier CSV (température, S1, S2, S3) à partir des
+    // courbes actuellement affichées, et déclenche son téléchargement
+    // via un Blob créé côté navigateur — sans backend.
+    function exporterCSV() {
+      const pointsS1 = graphique.data.datasets[0].data;
+      const pointsS2 = graphique.data.datasets[1].data;
+      const pointsS3 = graphique.data.datasets[2].data;
+
+      const lignes = ['Temperature_C;S1;S2;S3'];
+
+      temperatures.forEach(function (temperature, index) {
+        const s1 = pointsS1[index] ? pointsS1[index].valeur.toFixed(3) : '';
+        const s2 = pointsS2[index] ? pointsS2[index].valeur.toFixed(3) : '';
+        const s3 = pointsS3[index] ? pointsS3[index].valeur.toFixed(3) : '';
+        lignes.push(temperature + ';' + s1 + ';' + s2 + ';' + s3);
+      });
+
+      const contenuCSV = lignes.join('\n');
+      const blob = new Blob([contenuCSV], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const lien = document.createElement('a');
+      lien.href = url;
+      lien.download = 'rockeval-courbes.csv';
+      document.body.appendChild(lien);
+      lien.click();
+      document.body.removeChild(lien);
+      URL.revokeObjectURL(url);
+    }
+
+    boutonExporter.addEventListener('click', exporterCSV);
+
+    // Exporte le graphique tel qu'affiché en image PNG, via la fonction
+    // native de Chart.js (toBase64Image) — pas de traitement côté serveur.
+    function exporterImage() {
+      const lien = document.createElement('a');
+      lien.href = graphique.toBase64Image('image/png', 1);
+      lien.download = 'rockeval-graphique.png';
+      document.body.appendChild(lien);
+      lien.click();
+      document.body.removeChild(lien);
+    }
+
+    boutonExporterImage.addEventListener('click', exporterImage);
+
+    // Bascule entre thème sombre et thème clair : change l'attribut
+    // data-theme (ce qui suffit pour toute la mise en page en CSS),
+    // met à jour les couleurs "à la main" côté Chart.js, mémorise le
+    // choix, et retrace le graphique avec les nouvelles couleurs.
+    function appliquerTheme(theme) {
+      themeActuel = theme;
+      document.documentElement.setAttribute('data-theme', theme);
+
+      const couleurs = themeCouleurs[theme];
+      Chart.defaults.color = couleurs.texteChart;
+      Chart.defaults.borderColor = couleurs.grilleChart;
+      fondCanvasCouleur = couleurs.fondCanvas;
+      ligneTmaxCouleurTrait = couleurs.ligneTrait;
+      ligneTmaxCouleurTexte = couleurs.ligneTexte;
+
+      boutonTheme.textContent = theme === 'light' ? '☀️ Clair' : '🌙 Sombre';
+
+      try {
+        localStorage.setItem('rockeval-theme', theme);
+      } catch (erreur) {
+        // Stockage indisponible : le choix ne sera pas mémorisé, tant pis.
+      }
+
+      graphique.update();
+    }
+
+    boutonTheme.addEventListener('click', function () {
+      appliquerTheme(themeActuel === 'light' ? 'dark' : 'light');
+    });
+  </script>
+
+  <script>
+    // Enregistre le service worker (sw.js) pour permettre un fonctionnement
+    // hors-ligne basique. "in navigator" vérifie que le navigateur supporte
+    // cette fonctionnalité avant d'essayer — certains anciens navigateurs ne
+    // la supportent pas.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function (erreur) {
+          console.warn('Échec de l\'enregistrement du service worker :', erreur);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
