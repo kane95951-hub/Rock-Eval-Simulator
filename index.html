@@ -79,7 +79,7 @@
 
   .theme-toggle-btn {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     padding: 0.4rem 0.85rem;
     border-radius: 999px;
     border: 1px solid rgba(var(--texte-rgb), 0.25);
@@ -161,7 +161,7 @@
   .field .hint {
     font-weight: 400;
     color: rgba(var(--texte-rgb), 0.5);
-    font-size: 0.82rem;
+    font-size: 0.85rem;
   }
 
   .field input[type="number"],
@@ -202,8 +202,16 @@
     border: 1px solid rgba(var(--erreur-rgb), 0.55);
     color: var(--texte);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     line-height: 1.5;
+  }
+
+  .a-propos-panel {
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba(var(--texte-rgb), 0.14);
+    border-radius: 0;
+    padding: 1.4rem 0 0 0;
   }
 
   .a-propos-panel summary {
@@ -223,7 +231,7 @@
   .a-propos-panel p,
   .a-propos-panel li {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     line-height: 1.6;
     color: rgba(var(--texte-rgb), 0.88);
   }
@@ -299,6 +307,37 @@
 
   @media (max-width: 480px) {
     .graphique-conteneur { height: 220px; }
+  }
+
+  .comparaison-intro {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: rgba(var(--texte-rgb), 0.78);
+    margin: 0 0 1.2rem 0;
+  }
+
+  .comparaison-grille {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+  }
+
+  .comparaison-colonne {
+    flex: 1 1 220px;
+    min-width: 0;
+  }
+
+  .comparaison-label {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: rgba(var(--texte-rgb), 0.78);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .graphique-conteneur--petit {
+    height: 170px;
   }
 
   footer {
@@ -381,6 +420,29 @@
       <button type="button" class="secondaire-btn" id="exporter-image-btn">Exporter le graphique en image (PNG)</button>
     </div>
 
+    <div class="panel comparaison-panel">
+      <h2>Comparaison : immature vs mature</h2>
+      <p class="comparaison-intro">
+        À type de kérogène égal (ici kérogène II, marin), comment les
+        courbes évoluent avec la maturité thermique : Tmax augmente et HI
+        diminue à mesure que le kérogène se craque.
+      </p>
+      <div class="comparaison-grille">
+        <div class="comparaison-colonne">
+          <p class="comparaison-label">Immature — Tmax 425°C</p>
+          <div class="graphique-conteneur graphique-conteneur--petit">
+            <canvas id="graphique-immature"></canvas>
+          </div>
+        </div>
+        <div class="comparaison-colonne">
+          <p class="comparaison-label">Mature — Tmax 455°C</p>
+          <div class="graphique-conteneur graphique-conteneur--petit">
+            <canvas id="graphique-mature"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="panel a-propos-panel">
       <details>
         <summary>À propos du modèle</summary>
@@ -412,7 +474,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="script.js"></script>
   <script>
-    // Références aux champs du formulaire et aux boutons
     const champTOC = document.getElementById('toc');
     const champHI = document.getElementById('hi');
     const champIO = document.getElementById('io');
@@ -421,53 +482,46 @@
     const boutonGenerer = document.getElementById('generer-btn');
     const boutonExporter = document.getElementById('exporter-btn');
     const boutonExporterImage = document.getElementById('exporter-image-btn');
-    const boutonTheme = document.getElementById('theme-toggle');
     const zoneErreurs = document.getElementById('zone-erreurs');
 
-    // --- Thème sombre / clair ---------------------------------------
-    // Chart.js ne lit pas les variables CSS de la page : ses propres
-    // couleurs (texte, grille, fond du canvas, ligne de Tmax) doivent
-    // être mises à jour "à la main" quand on change de thème.
-    const themeCouleurs = {
-      dark: {
-        texteChart: 'rgba(238, 246, 244, 0.85)',
-        grilleChart: 'rgba(238, 246, 244, 0.12)',
-        fondCanvas: '#1a1a1a',
-        ligneTrait: 'rgba(238, 246, 244, 0.55)',
-        ligneTexte: 'rgba(238, 246, 244, 0.9)'
-      },
-      light: {
-        texteChart: 'rgba(15, 46, 43, 0.85)',
-        grilleChart: 'rgba(15, 46, 43, 0.12)',
-        fondCanvas: '#eef6f4',
-        ligneTrait: 'rgba(15, 46, 43, 0.55)',
-        ligneTexte: 'rgba(15, 46, 43, 0.9)'
-      }
+    // Valeurs HI/IO typiques par type de kérogène (voir section "À propos
+    // du modèle") — utilisées pour préremplir le formulaire.
+    const valeursParType = {
+      I: { hi: 750, io: 20 },
+      II: { hi: 450, io: 30 },
+      III: { hi: 120, io: 70 }
     };
 
-    // Thème mémorisé d'une visite à l'autre (si le stockage local est
-    // disponible), sombre par défaut sinon.
-    let themeActuel = 'dark';
-    try {
-      themeActuel = localStorage.getItem('rockeval-theme') || 'dark';
-    } catch (erreur) {
-      // Stockage indisponible (navigation privée, etc.) : on reste en sombre.
+    champType.addEventListener('change', function () {
+      const valeurs = valeursParType[champType.value];
+      if (!valeurs) return;
+      champHI.value = valeurs.hi;
+      champIO.value = valeurs.io;
+      genererEtAfficher();
+    });
+
+    function creerTemperatures(min, max, pas) {
+      const temperatures = [];
+      for (let t = min; t <= max; t += pas) {
+        temperatures.push(t);
+      }
+      return temperatures;
     }
-    document.documentElement.setAttribute('data-theme', themeActuel);
-    boutonTheme.textContent = themeActuel === 'light' ? '☀️ Clair' : '🌙 Sombre';
+    const temperatures = creerTemperatures(300, 650, 2);
 
-    // Couleurs utilisées par les plugins Chart.js ci-dessous ; mises à
-    // jour par appliquerTheme() à chaque bascule.
-    let fondCanvasCouleur = themeCouleurs[themeActuel].fondCanvas;
-    let ligneTmaxCouleurTrait = themeCouleurs[themeActuel].ligneTrait;
-    let ligneTmaxCouleurTexte = themeCouleurs[themeActuel].ligneTexte;
-    Chart.defaults.color = themeCouleurs[themeActuel].texteChart;
-    Chart.defaults.borderColor = themeCouleurs[themeActuel].grilleChart;
-    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    function calculerParametres() {
+      const toc = parseFloat(champTOC.value);
+      const hi = parseFloat(champHI.value);
+      const io = parseFloat(champIO.value);
+      const tmax = parseFloat(champTmax.value);
 
-    // Vérifie qu'un champ contient un nombre dans les bornes autorisées
-    // (min/max définis directement sur l'input HTML). Retourne un
-    // message d'erreur en français, ou null si tout est correct.
+      const s2 = hi * toc / 100;
+      const s3 = io * toc / 100;
+      const s1 = 0.075 * s2;
+
+      return { s1: s1, s2: s2, s3: s3, tmax: tmax };
+    }
+
     function validerChamp(champ, nomAffiche, unite) {
       const valeur = parseFloat(champ.value);
       const min = parseFloat(champ.min);
@@ -477,8 +531,6 @@
         return nomAffiche + ' doit être un nombre.';
       }
       if (valeur < min || valeur > max) {
-        // toLocaleString('fr-FR') affiche une virgule décimale (0,1) plutôt
-        // qu'un point (0.1), plus correct en français.
         const minAffiche = min.toLocaleString('fr-FR');
         const maxAffiche = max.toLocaleString('fr-FR');
         return nomAffiche + ' doit être compris entre ' + minAffiche + ' et ' + maxAffiche + ' ' + unite + '.';
@@ -486,9 +538,6 @@
       return null;
     }
 
-    // Valide les quatre champs, met en évidence ceux qui posent problème
-    // (bordure rouge) et affiche les messages en français. Renvoie true
-    // si le formulaire est entièrement valide.
     function validerFormulaire() {
       const messages = [];
 
@@ -509,62 +558,49 @@
       return messages.length === 0;
     }
 
-    // Valeurs HI/IO typiques par type de kérogène (voir section "À propos
-    // du modèle") — utilisées pour préremplir le formulaire.
-    const valeursParType = {
-      I: { hi: 750, io: 20 },
-      II: { hi: 450, io: 30 },
-      III: { hi: 120, io: 70 }
+    // --- Thème sombre / clair ---
+    const boutonTheme = document.getElementById('theme-toggle');
+
+    const themeCouleurs = {
+      dark: {
+        texteChart: 'rgba(238, 246, 244, 0.85)',
+        grilleChart: 'rgba(238, 246, 244, 0.12)',
+        fondCanvas: '#1a1a1a',
+        ligneTrait: 'rgba(238, 246, 244, 0.55)',
+        ligneTexte: 'rgba(238, 246, 244, 0.9)'
+      },
+      light: {
+        texteChart: 'rgba(15, 46, 43, 0.85)',
+        grilleChart: 'rgba(15, 46, 43, 0.12)',
+        fondCanvas: '#eef6f4',
+        ligneTrait: 'rgba(15, 46, 43, 0.55)',
+        ligneTexte: 'rgba(15, 46, 43, 0.9)'
+      }
     };
 
-    // Au choix d'un type dans le menu déroulant, préremplit HI et IO, puis
-    // retrace immédiatement les courbes avec ces nouvelles valeurs.
-    champType.addEventListener('change', function () {
-      const valeurs = valeursParType[champType.value];
-      if (!valeurs) return; // "Personnalisé" : on ne touche à rien
-
-      champHI.value = valeurs.hi;
-      champIO.value = valeurs.io;
-
-      genererEtAfficher();
-    });
-
-    // Construit la liste des températures utilisée pour tracer les courbes
-    function creerTemperatures(min, max, pas) {
-      const temperatures = [];
-      for (let t = min; t <= max; t += pas) {
-        temperatures.push(t);
+    let themeActuel = 'dark';
+    try {
+      const themeSauvegarde = localStorage.getItem('theme');
+      if (themeSauvegarde === 'light' || themeSauvegarde === 'dark') {
+        themeActuel = themeSauvegarde;
       }
-      return temperatures;
-    }
-    const temperatures = creerTemperatures(300, 650, 2);
-
-    // Déduit S1, S2, S3 à partir des paramètres saisis (TOC, HI, IO).
-    // S2 et S3 se calculent directement depuis TOC/HI/IO ; S1 n'a pas de
-    // champ dédié dans le formulaire, on l'estime donc comme une petite
-    // fraction de S2 (simplification pédagogique assumée du modèle).
-    function calculerParametres() {
-      const toc = parseFloat(champTOC.value);
-      const hi = parseFloat(champHI.value);
-      const io = parseFloat(champIO.value);
-      const tmax = parseFloat(champTmax.value);
-
-      const s2 = hi * toc / 100;
-      const s3 = io * toc / 100;
-      const s1 = 0.075 * s2;
-
-      return { s1: s1, s2: s2, s3: s3, tmax: tmax };
+    } catch (erreur) {
+      // Stockage indisponible : on reste sur le thème sombre par défaut.
     }
 
-    // Mémorise le tmax actuellement affiché, pour que le plugin
-    // ci-dessous sache où tracer sa ligne verticale.
+    document.documentElement.setAttribute('data-theme', themeActuel);
+    boutonTheme.textContent = themeActuel === 'light' ? '☀️ Clair' : '🌙 Sombre';
+
+    Chart.defaults.color = themeCouleurs[themeActuel].texteChart;
+    Chart.defaults.borderColor = themeCouleurs[themeActuel].grilleChart;
+    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
+    let fondCanvasCouleur = themeCouleurs[themeActuel].fondCanvas;
+    let ligneTmaxCouleurTrait = themeCouleurs[themeActuel].ligneTrait;
+    let ligneTmaxCouleurTexte = themeCouleurs[themeActuel].ligneTexte;
+
     let tmaxActuel = parseFloat(champTmax.value);
 
-    // Le canvas est transparent par défaut : sans fond peint dessus, un
-    // export en image PNG donnerait un fichier avec un texte clair sur
-    // fond transparent (illisible une fois collé dans un rapport). Ce
-    // plugin peint un fond uni assorti au thème actuel, à l'écran comme
-    // à l'export.
     const fondCanvasPlugin = {
       id: 'fondCanvas',
       beforeDraw(chart) {
@@ -576,9 +612,6 @@
       }
     };
 
-    // Petit plugin Chart.js "maison" (pas de librairie externe) qui
-    // dessine une ligne verticale pointillée à la position de tmax,
-    // avec une étiquette au-dessus indiquant sa valeur.
     const ligneTmaxPlugin = {
       id: 'ligneTmax',
       afterDatasetsDraw(chart) {
@@ -596,18 +629,18 @@
         ctx.stroke();
 
         ctx.setLineDash([]);
-        ctx.fillStyle = ligneTmaxCouleurTexte;
+        const texteTmax = 'Tmax = ' + tmaxActuel + ' °C';
         ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+        const largeurTexte = ctx.measureText(texteTmax).width;
+        ctx.fillStyle = fondCanvasCouleur;
+        ctx.fillRect(xPixel - largeurTexte / 2 - 4, chartArea.top - 16, largeurTexte + 8, 14);
+        ctx.fillStyle = ligneTmaxCouleurTexte;
         ctx.textAlign = 'center';
-        ctx.fillText('Tmax = ' + tmaxActuel + ' °C', xPixel, chartArea.top - 6);
+        ctx.fillText(texteTmax, xPixel, chartArea.top - 6);
         ctx.restore();
       }
     };
 
-    // Création du graphique, avec trois courbes vides pour l'instant.
-    // Chaque point est de la forme {temperature, valeur} — on indique à
-    // Chart.js où lire x et y via "parsing", plutôt que de reformater
-    // les tableaux renvoyés par genererS1/S2/S3.
     const ctx = document.getElementById('graphique-rockeval');
     const graphique = new Chart(ctx, {
       type: 'line',
@@ -634,9 +667,8 @@
       plugins: [fondCanvasPlugin, ligneTmaxPlugin]
     });
 
-    // Recalcule les trois courbes à partir du formulaire et met à jour le graphique
     function genererEtAfficher() {
-      if (!validerFormulaire()) return; // on ne retrace pas si des valeurs sont invalides
+      if (!validerFormulaire()) return;
 
       const parametres = calculerParametres();
       tmaxActuel = parametres.tmax;
@@ -648,15 +680,10 @@
       graphique.update();
     }
 
-    // Premier tracé au chargement de la page, avec les valeurs par défaut
     genererEtAfficher();
 
-    // Recalcule et retrace à chaque clic sur "Générer les courbes"
     boutonGenerer.addEventListener('click', genererEtAfficher);
 
-    // Construit un fichier CSV (température, S1, S2, S3) à partir des
-    // courbes actuellement affichées, et déclenche son téléchargement
-    // via un Blob créé côté navigateur — sans backend.
     function exporterCSV() {
       const pointsS1 = graphique.data.datasets[0].data;
       const pointsS2 = graphique.data.datasets[1].data;
@@ -686,8 +713,6 @@
 
     boutonExporter.addEventListener('click', exporterCSV);
 
-    // Exporte le graphique tel qu'affiché en image PNG, via la fonction
-    // native de Chart.js (toBase64Image) — pas de traitement côté serveur.
     function exporterImage() {
       const lien = document.createElement('a');
       lien.href = graphique.toBase64Image('image/png', 1);
@@ -699,13 +724,71 @@
 
     boutonExporterImage.addEventListener('click', exporterImage);
 
-    // Bascule entre thème sombre et thème clair : change l'attribut
-    // data-theme (ce qui suffit pour toute la mise en page en CSS),
-    // met à jour les couleurs "à la main" côté Chart.js, mémorise le
-    // choix, et retrace le graphique avec les nouvelles couleurs.
+    // --- Graphique comparatif : immature vs mature (Jour 42) ---
+    // Deux jeux de valeurs fixes, pour un même type de kérogène (II),
+    // illustrant comment Tmax augmente et HI diminue avec la maturité
+    // thermique. Indépendant du formulaire : ce n'est pas interactif,
+    // juste une illustration pédagogique statique.
+    const scenarioImmature = { toc: 5, hi: 550, io: 25, tmax: 425 };
+    const scenarioMature = { toc: 5, hi: 250, io: 15, tmax: 455 };
+
+    function courbesDuScenario(scenario) {
+      const s2 = scenario.hi * scenario.toc / 100;
+      const s3 = scenario.io * scenario.toc / 100;
+      const s1 = 0.075 * s2;
+      return {
+        s1: genererS1(temperatures, s1),
+        s2: genererS2(temperatures, s2, scenario.tmax),
+        s3: genererS3(temperatures, s3)
+      };
+    }
+
+    const courbesImmature = courbesDuScenario(scenarioImmature);
+    const courbesMature = courbesDuScenario(scenarioMature);
+
+    // Échelle Y partagée entre les deux mini-graphiques : sans ça, Chart.js
+    // ajusterait chaque axe séparément et fausserait la comparaison visuelle.
+    function maxValeur(points) {
+      return points.reduce(function (max, p) { return Math.max(max, p.valeur); }, 0);
+    }
+    const maxPartage = Math.max(
+      maxValeur(courbesImmature.s1), maxValeur(courbesMature.s1),
+      maxValeur(courbesImmature.s2), maxValeur(courbesMature.s2),
+      maxValeur(courbesImmature.s3), maxValeur(courbesMature.s3)
+    ) * 1.1;
+
+    function creerGraphiqueComparaison(idCanvas, courbes) {
+      const ctxComparaison = document.getElementById(idCanvas);
+      return new Chart(ctxComparaison, {
+        type: 'line',
+        data: {
+          datasets: [
+            { label: 'S1', data: courbes.s1, borderColor: '#4f8cff', pointRadius: 0, tension: 0.3, borderWidth: 1.5 },
+            { label: 'S2', data: courbes.s2, borderColor: '#2f9e8f', pointRadius: 0, tension: 0.3, borderWidth: 1.5 },
+            { label: 'S3', data: courbes.s3, borderColor: '#e08a3c', pointRadius: 0, tension: 0.3, borderWidth: 1.5 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          parsing: { xAxisKey: 'temperature', yAxisKey: 'valeur' },
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { type: 'linear', min: 300, max: 650, ticks: { font: { size: 9 } } },
+            y: { min: 0, max: maxPartage, ticks: { font: { size: 9 } } }
+          }
+        },
+        plugins: [fondCanvasPlugin]
+      });
+    }
+
+    const graphiqueImmature = creerGraphiqueComparaison('graphique-immature', courbesImmature);
+    const graphiqueMature = creerGraphiqueComparaison('graphique-mature', courbesMature);
+
     function appliquerTheme(theme) {
       themeActuel = theme;
       document.documentElement.setAttribute('data-theme', theme);
+      boutonTheme.textContent = theme === 'light' ? '☀️ Clair' : '🌙 Sombre';
 
       const couleurs = themeCouleurs[theme];
       Chart.defaults.color = couleurs.texteChart;
@@ -714,15 +797,15 @@
       ligneTmaxCouleurTrait = couleurs.ligneTrait;
       ligneTmaxCouleurTexte = couleurs.ligneTexte;
 
-      boutonTheme.textContent = theme === 'light' ? '☀️ Clair' : '🌙 Sombre';
-
       try {
-        localStorage.setItem('rockeval-theme', theme);
+        localStorage.setItem('theme', theme);
       } catch (erreur) {
         // Stockage indisponible : le choix ne sera pas mémorisé, tant pis.
       }
 
       graphique.update();
+      graphiqueImmature.update();
+      graphiqueMature.update();
     }
 
     boutonTheme.addEventListener('click', function () {

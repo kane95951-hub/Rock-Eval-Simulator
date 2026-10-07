@@ -2,7 +2,7 @@
 
 Simulateur pédagogique de pyrolyse Rock-Eval — visualise, de façon simplifiée, comment une roche mère génère ses signaux **S1, S2, S3** et **Tmax** pendant une analyse Rock-Eval.
 
-**Démo en ligne :** [kane95951-hub.github.io/PetroRock-Eval-Simulator](https://kane95951-hub.github.io/PetroRock-Eval-Simulator/)
+**Démo en ligne :** [kane95951-hub.github.io/Rock-Eval-Simulator](https://kane95951-hub.github.io/Rock-Eval-Simulator/)
 
 Projet étudiant — EHES, Génie Pétrolier et Gaz, Dakar. Réalisé avec l'assistance de Claude (Anthropic).
 
@@ -16,6 +16,7 @@ Cet outil s'adresse aux étudiants en géologie pétrolière qui découvrent la 
 - Préréglages rapides par type de kérogène (I, II, III)
 - Validation des champs avec messages d'erreur en français
 - Graphique interactif (Chart.js) des trois courbes S1/S2/S3, avec une ligne annotant Tmax
+- Graphique comparatif statique : matière organique immature vs mature, à type de kérogène égal
 - Export des points calculés en **CSV**
 - Export du graphique en **image PNG**
 - Mode sombre / clair (mémorisé d'une visite à l'autre)
@@ -38,8 +39,6 @@ Le simulateur ne mesure rien : il **génère** des courbes plausibles à partir 
 - La position et la largeur des pics (centre de S1 à 300°C, centre de S3 à 400°C, largeurs des trois pics) sont des valeurs fixes choisies pour donner une allure réaliste, pas calibrées sur des mesures de laboratoire
 - Aucune variable de temps de rétention, de vitesse de chauffe ou d'appareil réel n'est prise en compte
 
-Les sources scientifiques précises ayant inspiré ce modèle simplifié sont listées ci-dessous.
-
 ## Sources scientifiques
 
 - Behar, F., Beaumont, V., De B. Penteado, H.L. (2001). *Rock-Eval 6 Technology: Performances and Developments*. Oil & Gas Science and Technology – Rev. IFP, 56(2), 111-134. [doi:10.2516/ogst:2001013](https://doi.org/10.2516/ogst:2001013) — décrit les paramètres Rock-Eval (S1, S2, S3, TOC, Tmax) et leur méthode d'acquisition.
@@ -48,7 +47,7 @@ Les sources scientifiques précises ayant inspiré ce modèle simplifié sont li
 
 ## Utilisation
 
-**En ligne :** ouvre simplement le [lien de démo](https://kane95951-hub.github.io/PetroRock-Eval-Simulator/), aucune installation requise.
+**En ligne :** ouvre simplement le [lien de démo](https://kane95951-hub.github.io/Rock-Eval-Simulator/), aucune installation requise.
 
 **En local :**
 1. Clone ou télécharge ce dépôt
@@ -57,13 +56,12 @@ Les sources scientifiques précises ayant inspiré ce modèle simplifié sont li
 ## Structure du projet
 
 ```
-├── index.html      # Page principale (formulaire + graphique)
+├── index.html      # Page principale (formulaire + graphiques)
 ├── script.js       # Fonctions de génération des courbes (genererS1/S2/S3)
 ├── manifest.json   # Métadonnées de l'application installable (PWA)
 ├── sw.js           # Service worker (fonctionnement hors-ligne basique)
-└── icons/          # Icônes de l'application
-    ├── icon-192.png
-    └── icon-512.png
+├── icon-192.png    # Icône de l'application
+└── icon-512.png    # Icône de l'application
 ```
 
 ## Technologies

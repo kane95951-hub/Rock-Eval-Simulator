@@ -51,8 +51,6 @@ function genererS1(temperatures, valeurS1) {
   const centre = 300;  // °C — position du sommet du pic S1
   const largeur = 15;  // °C — écart-type : pic étroit et pointu
 
-  // Ce facteur assure que l'aire totale sous la courbe reste
-  // proportionnelle à valeurS1, quelle que soit la largeur choisie.
   const hauteur = valeurS1 / (largeur * Math.sqrt(2 * Math.PI));
 
   return temperatures.map(function (temperature) {
@@ -82,16 +80,11 @@ function genererS2(temperatures, valeurS2, tmax) {
   const largeurMontee = 55;   // °C — écart-type avant tmax : plus large = montée lente
   const largeurDescente = 35; // °C — écart-type après tmax : plus étroit = descente rapide
 
-  // Hauteur approximative pour garder l'aire sous la courbe
-  // proportionnelle à valeurS2, malgré l'asymétrie du pic.
   const largeurMoyenne = (largeurMontee + largeurDescente) / 2;
   const hauteur = valeurS2 / (largeurMoyenne * Math.sqrt(2 * Math.PI));
 
   return temperatures.map(function (temperature) {
-    // Avant le sommet : montée lente (largeur plus grande).
-    // Après le sommet : descente rapide (largeur plus petite).
     const largeur = temperature <= tmax ? largeurMontee : largeurDescente;
-
     return {
       temperature: temperature,
       valeur: gaussienne(temperature, tmax, largeur, hauteur)
