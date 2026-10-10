@@ -54,16 +54,34 @@
     min-height: 100%;
   }
 
+  /* Couleur de repli sous le dégradé (évite un éclair de blanc au chargement). */
+  html {
+    background: var(--grad-1);
+  }
+
   body {
     font-family: "Georgia", "Iowan Old Style", serif;
     color: var(--texte);
-    background: linear-gradient(160deg, var(--grad-1) 0%, var(--grad-2) 55%, var(--grad-3) 100%);
-    background-attachment: fixed;
     display: flex;
     align-items: flex-start;
     justify-content: center;
     padding: 6vh 6vw 8vh;
-    transition: background 0.25s ease, color 0.25s ease;
+    transition: color 0.25s ease;
+  }
+
+  /* Le dégradé est peint sur un calque fixe à part, plutôt qu'avec
+     "background-attachment: fixed" sur le body : cette propriété oblige
+     plusieurs navigateurs (surtout sur mobile) à repeindre le fond à
+     chaque image du défilement. Même rendu visuel, défilement plus fluide. */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: -1;
+    background: linear-gradient(160deg, var(--grad-1) 0%, var(--grad-2) 55%, var(--grad-3) 100%);
   }
 
   main {
@@ -654,6 +672,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: { duration: 300 },
         parsing: { xAxisKey: 'temperature', yAxisKey: 'valeur' },
         layout: { padding: { top: 20 } },
         plugins: {
@@ -771,6 +790,10 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          // Graphiques statiques : pas d'animation d'entrée. Sans ça, Chart.js
+          // anime les deux courbes pendant 1 s au chargement, en même temps
+          // que le graphique principal — du travail inutile sur mobile.
+          animation: false,
           parsing: { xAxisKey: 'temperature', yAxisKey: 'valeur' },
           plugins: { legend: { display: false } },
           scales: {
