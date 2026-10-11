@@ -229,10 +229,13 @@
     border: none;
     border-top: 1px solid rgba(var(--texte-rgb), 0.14);
     border-radius: 0;
-    padding: 1.4rem 0 0 0;
+    padding: 0.5rem 0 0 0;
   }
 
   .a-propos-panel summary {
+    /* Zone tactile d'environ 44 px de haut (au lieu de 16 px) : le padding
+       compense l'espace retiré en haut du panneau, donc rendu inchangé. */
+    padding: 0.9rem 0;
     cursor: pointer;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 0.85rem;
@@ -258,6 +261,11 @@
     margin: 0.9rem 0 0 0;
   }
 
+  /* Le padding du résumé fournit déjà l'espace sous le titre. */
+  .a-propos-panel summary + p {
+    margin-top: 0;
+  }
+
   .a-propos-panel ul {
     margin: 0.6rem 0 0 0;
     padding-left: 1.2rem;
@@ -269,7 +277,7 @@
 
   .a-propos-panel code {
     font-family: "SFMono-Regular", Consolas, monospace;
-    font-size: 0.85em;
+    font-size: 0.95em;
     background: rgba(var(--texte-rgb), 0.1);
     padding: 0.1em 0.35em;
     border-radius: 4px;
@@ -368,6 +376,18 @@
 
   @media (max-width: 480px) {
     body { padding: 8vh 7vw 8vh; }
+  }
+
+  /* Écrans tactiles : cibles d'au moins 44 px de haut (recommandation
+     courante pour les doigts). Les écrans à souris gardent la taille actuelle. */
+  @media (pointer: coarse) {
+    .theme-toggle-btn,
+    .generer-btn,
+    .secondaire-btn,
+    .field input[type="number"],
+    .field select {
+      min-height: 44px;
+    }
   }
 </style>
 </head>
