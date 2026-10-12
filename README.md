@@ -64,6 +64,18 @@ Le simulateur ne mesure rien : il **génère** des courbes plausibles à partir 
 └── icon-512.png    # Icône de l'application
 ```
 
+## Idées pour la version 2
+
+Pistes envisagées, sans engagement de calendrier :
+
+1. **S1 comme champ de saisie** — aujourd'hui S1 est estimé à 7,5 % de S2, une approximation arbitraire.
+2. **Indices dérivés** — production potentielle (S1 + S2), indice de production S1 / (S1 + S2), et repères de maturité d'après Tmax.
+3. **Diagramme HI–Tmax** — placer la roche saisie selon son type de kérogène et sa maturité.
+4. **Mode exercices** — par exemple retrouver le type de kérogène à partir des courbes, avec correction, pour l'usage en classe.
+5. **Chart.js hébergé dans le dépôt** — pour un fonctionnement hors-ligne dès la toute première visite.
+
+Les retours et suggestions sont les bienvenus.
+
 ## Technologies
 
 HTML, CSS et JavaScript natifs (aucun framework) pour le code, [Chart.js](https://www.chartjs.org/) pour les graphiques ; le tout hébergé gratuitement sur GitHub Pages.
