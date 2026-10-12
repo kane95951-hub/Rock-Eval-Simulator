@@ -20,7 +20,7 @@ Cet outil s'adresse aux étudiants en géologie pétrolière qui découvrent la 
 - Export des points calculés en **CSV**
 - Export du graphique en **image PNG**
 - Mode sombre / clair (mémorisé d'une visite à l'autre)
-- Application installable (PWA), avec un fonctionnement hors-ligne basique après une première visite en ligne
+- Application installable (PWA), utilisable hors-ligne après deux visites en ligne (Chart.js est alors mis en cache)
 
 ## Comment ça marche (modèle simplifié)
 

@@ -411,6 +411,12 @@
       ⚠️ Simulation pédagogique simplifiée — ne remplace pas une mesure Rock-Eval réelle.
     </div>
 
+    <div class="avertissement" id="alerte-graphique" role="alert" hidden>
+      Les graphiques n'ont pas pu se charger : la bibliothèque qui les
+      dessine (Chart.js) est téléchargée depuis internet à la première
+      visite. Vérifie ta connexion, puis recharge la page.
+    </div>
+
     <form class="panel" id="parametres-form">
       <h2>Paramètres de la roche mère</h2>
 
@@ -512,6 +518,12 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="script.js"></script>
   <script>
+    // Si Chart.js n'a pas pu être téléchargé (hors connexion, réseau coupé…),
+    // on l'explique à l'utilisateur au lieu de laisser des boutons muets.
+    if (typeof Chart === 'undefined') {
+      document.getElementById('alerte-graphique').hidden = false;
+    } else {
+
     const champTOC = document.getElementById('toc');
     const champHI = document.getElementById('hi');
     const champIO = document.getElementById('io');
@@ -729,6 +741,15 @@
 
     boutonGenerer.addEventListener('click', genererEtAfficher);
 
+    // Touche Entrée dans un champ numérique : même effet que le bouton
+    // « Générer » (sans cela, rien ne se passait).
+    document.getElementById('parametres-form').addEventListener('keydown', function (evenement) {
+      if (evenement.key === 'Enter' && evenement.target.tagName === 'INPUT') {
+        evenement.preventDefault();
+        genererEtAfficher();
+      }
+    });
+
     function exporterCSV() {
       const pointsS1 = graphique.data.datasets[0].data;
       const pointsS2 = graphique.data.datasets[1].data;
@@ -893,6 +914,8 @@
     boutonTheme.addEventListener('click', function () {
       appliquerTheme(themeActuel === 'light' ? 'dark' : 'light');
     });
+
+    }
   </script>
 
   <script>
