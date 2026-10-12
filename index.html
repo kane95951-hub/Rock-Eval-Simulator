@@ -834,6 +834,31 @@
     const graphiqueImmature = creerGraphiqueComparaison('graphique-immature', courbesImmature);
     const graphiqueMature = creerGraphiqueComparaison('graphique-mature', courbesMature);
 
+    // Couleurs du texte et de la grille écrites EXPLICITEMENT dans la
+    // configuration de chaque graphique (graduations, titres d'axes,
+    // légende). Se reposer sur Chart.defaults ne suffit pas : après un
+    // changement de thème, les graduations des axes gardaient l'ancienne
+    // couleur (vert foncé illisible sur fond noir) alors que la légende
+    // se mettait à jour.
+    function appliquerCouleursTexte(graphe, couleurs) {
+      const options = graphe.config.options;
+      ['x', 'y'].forEach(function (axe) {
+        const echelle = options.scales[axe];
+        echelle.ticks = echelle.ticks || {};
+        echelle.ticks.color = couleurs.texteChart;
+        echelle.grid = echelle.grid || {};
+        echelle.grid.color = couleurs.grilleChart;
+        if (echelle.title) echelle.title.color = couleurs.texteChart;
+      });
+      if (options.plugins && options.plugins.legend && options.plugins.legend.labels) {
+        options.plugins.legend.labels.color = couleurs.texteChart;
+      }
+    }
+
+    [graphique, graphiqueImmature, graphiqueMature].forEach(function (g) {
+      appliquerCouleursTexte(g, themeCouleurs[themeActuel]);
+    });
+
     function appliquerTheme(theme) {
       themeActuel = theme;
       document.documentElement.setAttribute('data-theme', theme);
@@ -847,6 +872,7 @@
       ligneTmaxCouleurTexte = couleurs.ligneTexte;
 
       [graphique, graphiqueImmature, graphiqueMature].forEach(function (g) {
+        appliquerCouleursTexte(g, couleurs);
         g.data.datasets.forEach(function (jeu, i) {
           jeu.borderColor = couleurs.courbes[i];
           if (g === graphique) jeu.backgroundColor = couleurs.courbesFond[i];

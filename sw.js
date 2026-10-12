@@ -6,7 +6,7 @@
 // depuis un CDN externe) n'est pas mis en cache ici pour rester simple :
 // il faudra donc une connexion la première fois qu'il doit se charger.
 
-const NOM_CACHE = 'rockeval-cache-v1';
+const NOM_CACHE = 'rockeval-cache-v2';
 
 const FICHIERS_A_METTRE_EN_CACHE = [
   './',
